@@ -1,0 +1,10 @@
+#root {
+  max-width: 90%;
+  margin: 0 10%;
+}
+
+/* See https://forum.freecodecamp.org/t/newline-in-react-string-solved/68484 */
+/* Not a creative solution but we have \n in our texts */
+div {
+  white-space: pre-wrap;
+}
