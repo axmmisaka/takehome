@@ -60,9 +60,13 @@ export const MentionRenderer = ({ node, inheritedMark }: {
                         backgroundColor: node.color,
                         borderRadius: '4px',
                         padding: '2px 6px',
-                        color: 'black',
+                        color: "white",
                         cursor: 'pointer',
                         display: 'inline-block',
+                        input: {
+                            color: "white",
+                            ...style,
+                        },
                         ...style
                     }}
                 />
@@ -73,7 +77,7 @@ export const MentionRenderer = ({ node, inheritedMark }: {
                         backgroundColor: node.color,
                         borderRadius: '4px',
                         padding: '2px 6px',
-                        color: 'black',
+                        color: 'white',
                         cursor: 'pointer',
                         display: 'inline-block',
                         ...style
