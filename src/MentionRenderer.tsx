@@ -4,16 +4,15 @@ import TextField from "@mui/material/TextField";
 import { useState } from "react";
 import { useMentions } from "./MentionContext";
 
-export const MentionRenderer = ({ node, inheritedMark } : {
-        node: MentionNode,
-        inheritedMark: Marks
-    }) => {
+export const MentionRenderer = ({ node, inheritedMark }: {
+    node: MentionNode,
+    inheritedMark: Marks
+}) => {
+
     const { mentionValues, updateMentionValue } = useMentions();
 
-    
     const currentMarks: Marks = { ...inheritedMark, ...node };
 
-    
     const style: React.CSSProperties = {
         fontWeight: currentMarks.bold ? "bold" : "normal",
         fontStyle: currentMarks.italic ? "italic" : "normal",
@@ -24,30 +23,26 @@ export const MentionRenderer = ({ node, inheritedMark } : {
     const [isEditing, setIsEditing] = useState(false);
     const [editValue, setEditValue] = useState(displayedValue);
 
-    
     const handleDisplayClick = () => {
         setIsEditing(true);
-        setEditValue(displayedValue); 
+        setEditValue(displayedValue);
     };
 
-    
     const handleSave = () => {
-        if (editValue !== displayedValue) { 
+        if (editValue !== displayedValue) {
             updateMentionValue(node.id, editValue);
         }
-        setIsEditing(false); 
+        setIsEditing(false);
     };
 
-    
     const handleInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
         setEditValue(event.target.value);
     };
 
-    
     const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
         if (event.key === 'Enter') {
             handleSave();
-            event.currentTarget.blur(); 
+            event.currentTarget.blur();
         }
     };
 
@@ -57,18 +52,18 @@ export const MentionRenderer = ({ node, inheritedMark } : {
                 <TextField
                     value={editValue}
                     onChange={handleInputChange}
-                    onBlur={handleSave} 
-                    onKeyDown={handleKeyDown} 
-                    autoFocus 
-                    variant="standard" 
+                    onBlur={handleSave}
+                    onKeyDown={handleKeyDown}
+                    autoFocus
+                    variant="standard"
                     sx={{
                         backgroundColor: node.color,
                         borderRadius: '4px',
                         padding: '2px 6px',
-                        color: 'black', 
+                        color: 'black',
                         cursor: 'pointer',
-                        display: 'inline-block', 
-                        ...style 
+                        display: 'inline-block',
+                        ...style
                     }}
                 />
             ) : (
@@ -78,12 +73,12 @@ export const MentionRenderer = ({ node, inheritedMark } : {
                         backgroundColor: node.color,
                         borderRadius: '4px',
                         padding: '2px 6px',
-                        color: 'black', 
+                        color: 'black',
                         cursor: 'pointer',
-                        display: 'inline-block', 
-                        ...style 
+                        display: 'inline-block',
+                        ...style
                     }}
-                    onClick={handleDisplayClick} 
+                    onClick={handleDisplayClick}
                 >
                     {displayedValue}
                 </Box>
