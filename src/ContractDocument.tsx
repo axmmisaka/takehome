@@ -1,8 +1,7 @@
-import { isMentionNode, isTextNode, type AnyNode, type DocumentData, type Marks } from './types';
+import { isClauseNode, isMentionNode, isTextNode, type AnyNode, type ClauseNode, type DocumentData, type Marks } from './types';
 import { NodeRenderer } from './NodeRenderer';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { MentionContext, type MentionValues } from './MentionContext';
-import { ClauseContext } from './ClauseContext';
 
 
 export const ContractDocument = (
@@ -11,57 +10,49 @@ export const ContractDocument = (
     }
 ) => {
     const [mentionValues, setMentionValues] = useState<MentionValues>({});
-    // A bug I realised without this is that if I edit sample.ts before refresh the numbers are incorrect.
-    // I pass in this version every time document changes so that ClauseContext gets destroyed completely.
-    const [version, setVersion] = useState(0);
-    useEffect(() => {
-        setVersion(prevKey => prevKey + 1);
-    }, [document]);
-
     const updateMentionValue = (id: string, newValue: string) => {
         setMentionValues(prev => ({
             ...prev,
             [id]: newValue,
         }));
     };
+    // A bit anti TS pattern but best for abstraction; this maps a node (doubtful!) to [number, number];
+    // where the first number is depth and second number is global number.
+    // In ClauseRenderer there's a function to choose how we want to render it. 
+    // We use WeakMap to allow good GC performance.
+    const [clauseToNumberingMap, setClauseToNumberingMap] = useState<WeakMap<ClauseNode, [number, number]>>(new WeakMap());
 
     useEffect(() => {
-        const initialValues: MentionValues = {};
-        const collectMentions = (nodes: AnyNode[]) => {
+        const initialMentionValues: MentionValues = {};
+
+        const clauseNumberMap = new WeakMap<ClauseNode, [number, number]>();
+        const depthCounters: { [depth: number]: number } = {};
+
+        // DFS
+        const traverse = (nodes: AnyNode[], currentDepth: number) => {
             nodes.forEach(node => {
                 if (isMentionNode(node)) {
-                    initialValues[node.id] = node.value;
+                    initialMentionValues[node.id] = node.value;
                 }
+                if (isClauseNode(node)) {
+                    depthCounters[currentDepth] = (depthCounters[currentDepth] ?? 0) + 1;
+                    const number = depthCounters[currentDepth];
+                    clauseNumberMap.set(node, [currentDepth, number]);
+                }
+
                 if (!isTextNode(node) && node.children) {
-                    collectMentions(node.children);
+                    const nextDepth = isClauseNode(node) ? currentDepth + 1 : currentDepth;
+                    traverse(node.children, nextDepth);
                 }
             });
         };
-        collectMentions(document);
-        setMentionValues(initialValues);
+
+        traverse(document, 1);
+
+        // Update both states
+        setMentionValues(initialMentionValues);
+        setClauseToNumberingMap(clauseNumberMap);
     }, [document]);
-
-    const globalClauseCounters = useRef<{ [depth: number]: number }>({});
-    const getCounter = useCallback((depth: number): number => {
-        return globalClauseCounters.current[depth] || 0;
-    }, []);
-    // ref doesn't re-render. Use this to force re-render.
-    const [, setUpdate] = useState(false);
-    const incrementCounter = useCallback((depth: number): number => {
-        const currentCount = globalClauseCounters.current[depth] || 0;
-        const newCount = currentCount + 1;
-        globalClauseCounters.current[depth] = newCount;
-        setUpdate(prev => !prev);
-        return newCount;
-    }, []);
-    const resetAllCounters = useCallback(() => {
-        globalClauseCounters.current = {};
-        setUpdate(prev => !prev);
-    }, []);
-
-    useEffect(() => {
-        resetAllCounters();
-    }, [document, resetAllCounters]);
 
     const marks: Marks = {
         bold: false,
@@ -70,15 +61,13 @@ export const ContractDocument = (
     }
     return (
         <MentionContext.Provider value={{ mentionValues, updateMentionValue }}>
-            <ClauseContext.Provider key={version} value={{ getCounter, incrementCounter, resetAllCounters }}>
-                <>
-                    {
-                        document.map(
-                            (child, idx) => <NodeRenderer key={idx} node={child} inheritedMark={marks} clauseDepth={1} />
-                        )
-                    }
-                </>
-            </ClauseContext.Provider>
+            <>
+                {
+                    document.map(
+                        (child, idx) => <NodeRenderer key={idx} node={child} inheritedMark={marks} clauseToNumberingMap={clauseToNumberingMap} />
+                    )
+                }
+            </>
         </MentionContext.Provider>
     );
 }

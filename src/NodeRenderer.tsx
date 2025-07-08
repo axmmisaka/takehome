@@ -1,13 +1,13 @@
 import React, { type JSX } from 'react';
-import { isBlockNode, isClauseNode, isMentionNode, isTextNode, type AnyNode, type Marks } from './types';
+import { isBlockNode, isClauseNode, isMentionNode, isTextNode, type AnyNode, type ClauseNode, type Marks } from './types';
 import { MentionRenderer } from './MentionRenderer';
 import { ClauseRenderer } from './ClauseRenderer';
 
 export const NodeRenderer = (
-    { node, inheritedMark, clauseDepth }: {
+    { node, inheritedMark, clauseToNumberingMap }: {
         node: AnyNode;
         inheritedMark: Marks;
-        clauseDepth: number;
+        clauseToNumberingMap: WeakMap<ClauseNode, [number, number]>;
     }
 ) => {
     const myMarks: Marks = { ...inheritedMark, ...node };
@@ -22,7 +22,7 @@ export const NodeRenderer = (
 
     // Unfortunately TS doesn't have type-narrowing on switch
     if (isClauseNode(node)) {
-        return <ClauseRenderer node={node} inheritedMark={myMarks} clauseDepth={clauseDepth} />
+        return <ClauseRenderer node={node} inheritedMark={myMarks} clauseToNumberingMap={clauseToNumberingMap} />
     }
     if (isMentionNode(node)) {
         return <MentionRenderer node={node} inheritedMark={myMarks} />
@@ -33,7 +33,7 @@ export const NodeRenderer = (
                 {
                     node.children.map(
                         (child, idx) => (
-                            <NodeRenderer key={idx} node={child} inheritedMark={myMarks} clauseDepth={clauseDepth} />
+                            <NodeRenderer key={idx} node={child} inheritedMark={myMarks} clauseToNumberingMap={clauseToNumberingMap}/>
                         )
                     )
                 }
@@ -48,7 +48,7 @@ export const NodeRenderer = (
             {
                 node.children.map(
                     (child, idx) => (
-                        <NodeRenderer key={idx} node={child} inheritedMark={myMarks} clauseDepth={clauseDepth} />
+                        <NodeRenderer key={idx} node={child} inheritedMark={myMarks} clauseToNumberingMap={clauseToNumberingMap} />
                     )
                 )
             }

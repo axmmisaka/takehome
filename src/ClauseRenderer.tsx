@@ -1,14 +1,11 @@
 import Box from "@mui/material/Box";
 import type { ClauseNode, Marks } from "./types";
 import { NodeRenderer } from "./NodeRenderer";
-import { useClauseNumber } from "./ClauseContext";
-import { useEffect, useRef, useState } from "react";
 
 const numberToAlpha = (num: number): string => {
   if (num <= 0) {
     throw new Error("Input number must be a positive integer.");
   }
-
   let result = '';
   let currentNum = num;
 
@@ -17,44 +14,47 @@ const numberToAlpha = (num: number): string => {
     result = String.fromCharCode(97 + remainder) + result;
     currentNum = Math.floor((currentNum - 1) / 26);
   }
-
   return result;
+} 
+
+const clauseDepthAndIndexToString = (depth: number, index: number): string => {
+    const cycleDepth = ((depth - 1) % 4) + 1;
+    switch (cycleDepth) {
+        case 1:
+            return `${index}.`;
+        case 2:
+            return `(${numberToAlpha(index)})`;
+        case 3:
+            return `(${index})`;
+        case 4:
+            return `${numberToAlpha(index).toUpperCase()}.`;
+        default:
+            // This is unreachable code.
+            return `${index}.`
+    }
 }
 
 export const ClauseRenderer = (
-    { node, inheritedMark, clauseDepth }:
+    { node, inheritedMark, clauseToNumberingMap }:
         {
             node: ClauseNode;
             inheritedMark: Marks;
-            clauseDepth: number;
+            clauseToNumberingMap: WeakMap<ClauseNode, [number, number]>;
         }
 ) => {
     const myMarks: Marks = { ...inheritedMark, ...node };
 
-    const { incrementCounter } = useClauseNumber();
-    const isInitialized = useRef(false);
-    const [clauseIndex, setClauseIndex] = useState<number | null>(null);
-
-    useEffect(() => {
-        if (!isInitialized.current) {
-            const newIndex = incrementCounter(clauseDepth);
-            setClauseIndex(newIndex);
-            isInitialized.current = true;
-        }
-    }, [clauseDepth, incrementCounter]);
-
-
-    const currentCountText = clauseDepth % 2 === 1 ? `${clauseIndex}. ` : `(${numberToAlpha(clauseIndex ?? 1)}) `;
+    const [depth, index] = clauseToNumberingMap.get(node) ?? [0, 0];
 
     return (
         <Box sx={{ display: 'flex', alignItems: 'baseline' }}>
             <span style={{ flexShrink: 0 }}>
-                {currentCountText}
+                {`${clauseDepthAndIndexToString(depth, index)} `}
             </span>
             <Box sx={{ flexGrow: 1 }}>
                 {
                     node.children.map(
-                        (child, idx) => <NodeRenderer key={idx} node={child} inheritedMark={myMarks} clauseDepth={clauseDepth + 1} />
+                        (child, idx) => <NodeRenderer key={idx} node={child} inheritedMark={myMarks} clauseToNumberingMap={clauseToNumberingMap} />
                     )
                 }
             </Box>
